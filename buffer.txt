@@ -1,0 +1,5 @@
+1. // TODO program check, line number 4, located at /Users/xhail/projects/minigrep/src/lib.rs
+2. // TODO: `Arc` isn't enough if you want a **mutable** shared state., line number 12, located at /Users/xhail/rustlings/exercises/20_threads/threads2.rs
+3. // TODO: You must take an action before you update a shared value., line number 21, located at /Users/xhail/rustlings/exercises/20_threads/threads2.rs
+4. // TODO: Print the value of `JobStatus.jobs_done`., line number 32, located at /Users/xhail/rustlings/exercises/20_threads/threads2.rs
+5. println!("Jobs done: {}", todo!());, line number 33, located at /Users/xhail/rustlings/exercises/20_threads/threads2.rs
