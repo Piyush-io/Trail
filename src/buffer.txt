@@ -1,0 +1,3 @@
+1. // TODO : this would be part of another executable, we would only be reading the trail_paths, line number 12, located at /Users/xhail/Desktop/PR1/trail/src/main.rs
+2. let buffer_file_path = PathBuf::from(format!("{}/buffer.txt", parent_path.display())); // TODO currently fixing src path, line number 29, located at /Users/xhail/Desktop/PR1/trail/src/main.rs
+3. // Filter lines containing TODO or todo!(), line number 33, located at /Users/xhail/Desktop/PR1/trail/src/main.rs

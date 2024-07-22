@@ -1,78 +1,58 @@
-use std::{fmt::Write, fs, io /* process::Command*/};
-
-fn read_file_content(path: &str) -> io::Result<String> {
-    fs::read_to_string(path)
-}
-
-fn filter_todo_lines(content: &str) -> Vec<(usize, &str)> {
-    content
-        .lines()
-        .enumerate()
-        .filter(|(_, line)| line.contains("TODO") || line.contains("todo"))
-        .collect()
-}
-
-fn generate_buffer_content(path: &str, result: &[(usize, &str)], count: &mut usize) -> String {
-    let mut buffer = String::new();
-    for (line_no, line) in result {
-        writeln!(
-            &mut buffer,
-            "{}. {}, line number {}, located at {}",
-            *count,
-            line.trim(),
-            line_no + 1,
-            path
-        )
-        .expect("Error writing to buffer");
-        *count += 1;
-    }
-    buffer
-}
-
-fn write_to_file(file_path: &str, content: &str) -> io::Result<()> {
-    fs::write(file_path, content)?;
-    Ok(())
-}
-
-// fn execute_cat_command(file_path: &str) -> io::Result<()> {
-//     let status = Command::new("cat")
-//         .arg(file_path)
-//         .status()
-//         .expect("Failed to execute command");
-//     if !status.success() {
-//         println!("Failed to read buffer file");
-//     }
-//     Ok(())
-// }
+use colored::Colorize;
+use std::io;
+use std::path::{Path, PathBuf};
+use trail::{
+    create_trail_file, filter_todo_lines, find_rs_files, find_src_path, generate_buffer_content,
+    read_file_content, write_to_file,
+};
 
 fn main() -> io::Result<()> {
-    let mut paths: Vec<&String> = Vec::new();
-    let path1 = "/Users/xhail/projects/minigrep/src/lib.rs".to_string();
-    let path2 = "/Users/xhail/rustlings/exercises/20_threads/threads2.rs".to_string();
-    let buffer_file_path = "/Users/xhail/Desktop/PR1/trail/buffer.txt".to_string();
+    let mut source_file_paths: Vec<PathBuf> = Vec::new();
+    let mut buffer_file_paths: Vec<PathBuf> = Vec::new();
 
-    paths.push(&path1);
-    paths.push(&path2);
+    let trail_file_path = create_trail_file();
+    let paths = read_file_content(&trail_file_path)?;
+
+    for path in paths.lines() {
+        let path = PathBuf::from(path);
+        source_file_paths.push(path);
+    }
 
     let mut combined_buffer = String::new();
     let mut count = 1;
 
-    for path in &paths {
-        // Read content from file
-        let content = read_file_content(path)?; // We recieve Result Type
+    for path in &source_file_paths {
+        let parent_path = path.parent().unwrap();
+        let src_path = find_src_path(&path).unwrap_or_else(|| {
+            eprintln!("Cargo.toml not found! Returning current path.");
+            path.to_path_buf()
+        });
 
-        // Filter lines containing TODO
-        let result = filter_todo_lines(&content); // We send a String as Result automatically dereferences, we recieve a vector
+        let rs_files = find_rs_files(&src_path);
+        let buffer_file_path = parent_path.join("buffer.txt");
 
-        // Generate content for the buffer line
-        let buffer = generate_buffer_content(path, &result, &mut count); // We send the path and the vector, and recieve the result as string
-        combined_buffer.push_str(&buffer);
+        for file in &rs_files {
+            let content = read_file_content(&file)?;
+            let result = filter_todo_lines(&content);
+            let buffer = generate_buffer_content(file, &result, &mut count);
+            combined_buffer.push_str(&buffer);
+        }
+
+        write_to_file(&buffer_file_path, &combined_buffer)?;
+        buffer_file_paths.push(buffer_file_path);
+        combined_buffer.clear(); // Clear combined_buffer for the next directory
     }
 
-    // Write buffer content to file
-    write_to_file(&buffer_file_path, &combined_buffer)?; // Writing the content to buffer file
-
-    // execute_cat_command(buffer_file_path)?;
+    for buffer_file_path in &buffer_file_paths {
+        let buffer_content = read_file_content(buffer_file_path)?;
+        let buffer_file_dir = buffer_file_path.parent().unwrap();
+        let buffer_file_dir_as_str = buffer_file_dir.to_string_lossy();
+        println!(
+            "Content of {}:\n{}",
+            buffer_file_dir_as_str.bold().bright_white(),
+            buffer_content.bright_cyan().bold()
+        );
+    }
 
     Ok(())
 }
