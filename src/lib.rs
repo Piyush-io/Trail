@@ -3,7 +3,9 @@ use std::fmt::Write as FmtWrite;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use walkdir::WalkDir;
+use rayon::prelude::*;
 
 const TRAIL_FILE: &str = "trail_directories.txt";
 
@@ -23,14 +25,12 @@ pub fn find_src_path(path: &Path) -> Option<PathBuf> {
 }
 
 pub fn find_rs_files(src_path: &Path) -> Vec<PathBuf> {
-    let mut rs_file_paths: Vec<PathBuf> = Vec::new();
-    for entry in WalkDir::new(src_path).into_iter().filter_map(|e| e.ok()) {
-        let path = entry.path();
-        if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("rs") {
-            rs_file_paths.push(path.to_path_buf());
-        }
-    }
-    rs_file_paths
+    WalkDir::new(src_path)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|entry| entry.path().is_file() && entry.path().extension().and_then(|s| s.to_str()) == Some("rs"))
+        .map(|entry| entry.into_path())
+        .collect()
 }
 
 pub fn create_trail_file() -> PathBuf {
